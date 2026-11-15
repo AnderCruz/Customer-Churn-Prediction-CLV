@@ -32,7 +32,7 @@ secrets/
 # Data and model artefacts (never commit client data by default)
 data/*
 !data/.gitkeep
-models/
+/models/
 artifacts/
 mlruns/
 mlartifacts/
