@@ -1,3 +1,3 @@
-\"\"\"Nowa Customer Intelligence application package.\"\"\"
+"""Nowa Customer Intelligence application package."""
 
 __version__ = "0.1.0"
