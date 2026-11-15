@@ -15,14 +15,14 @@ def valid_subscriptions() -> pd.DataFrame:
             "subscription_id": ["S001", "S002"],
             "customer_id": ["C001", "C001"],
             "plan_id": ["P001", None],
-            "start_date": pd.to_datetime(["2025-01-15", "2025-02-20"]),
-            "end_date": [pd.NaT, pd.NaT],
+            "start_date": pd.to_datetime(["2025-01-15", "2025-02-20"], utc=True),
+            "end_date": pd.Series([pd.NaT, pd.NaT], dtype="datetime64[ns, UTC]"),
             "subscription_status": ["active", "trial"],
             "billing_frequency": ["monthly", None],
             "recurring_revenue": [29.99, 0],
             "currency": ["USD", "EUR"],
             "auto_renew": pd.Series([True, False], dtype="boolean"),
-            "cancellation_date": [pd.NaT, pd.NaT],
+            "cancellation_date": pd.Series([pd.NaT, pd.NaT], dtype="datetime64[ns, UTC]"),
             "cancellation_reason": [None, None],
         }
     )
@@ -42,7 +42,7 @@ def test_missing_optional_columns_are_added() -> None:
         {
             "subscription_id": ["S001"],
             "customer_id": ["C001"],
-            "start_date": pd.to_datetime(["2025-01-15"]),
+            "start_date": pd.to_datetime(["2025-01-15"], utc=True),
             "subscription_status": ["active"],
         }
     )
@@ -74,7 +74,7 @@ def test_invalid_subscription_id_fails(subscription_id: str | None) -> None:
         {
             "subscription_id": [subscription_id],
             "customer_id": ["C001"],
-            "start_date": pd.to_datetime(["2025-01-15"]),
+            "start_date": pd.to_datetime(["2025-01-15"], utc=True),
             "subscription_status": ["active"],
         }
     )
@@ -94,7 +94,7 @@ def test_invalid_customer_id_fails(customer_id: str | None) -> None:
         {
             "subscription_id": ["S001"],
             "customer_id": [customer_id],
-            "start_date": pd.to_datetime(["2025-01-15"]),
+            "start_date": pd.to_datetime(["2025-01-15"], utc=True),
             "subscription_status": ["active"],
         }
     )
@@ -118,7 +118,7 @@ def test_invalid_subscription_status_fails(status: str | None) -> None:
         {
             "subscription_id": ["S001"],
             "customer_id": ["C001"],
-            "start_date": pd.to_datetime(["2025-01-15"]),
+            "start_date": pd.to_datetime(["2025-01-15"], utc=True),
             "subscription_status": [status],
         }
     )
@@ -142,7 +142,7 @@ def test_invalid_currency_format_fails(currency: str) -> None:
         {
             "subscription_id": ["S001"],
             "customer_id": ["C001"],
-            "start_date": pd.to_datetime(["2025-01-15"]),
+            "start_date": pd.to_datetime(["2025-01-15"], utc=True),
             "subscription_status": ["active"],
             "currency": [currency],
         }
@@ -158,7 +158,7 @@ def test_null_required_field_fails(field: str) -> None:
     values: dict[str, list[object]] = {
         "subscription_id": ["S001"],
         "customer_id": ["C001"],
-        "start_date": [pd.Timestamp("2025-01-15")],
+        "start_date": [pd.Timestamp("2025-01-15", tz="UTC")],
         "subscription_status": ["active"],
     }
     values[field] = [None]
@@ -184,7 +184,7 @@ def test_invalid_field_type_fails(field: str, value: object) -> None:
         {
             "subscription_id": ["S001"],
             "customer_id": ["C001"],
-            "start_date": pd.to_datetime(["2025-01-15"]),
+            "start_date": pd.to_datetime(["2025-01-15"], utc=True),
             "subscription_status": ["active"],
         }
     )

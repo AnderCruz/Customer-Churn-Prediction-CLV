@@ -1,5 +1,6 @@
 """Pandera schema for invoice data validation."""
 
+import pandas as pd
 import pandera.pandas as pa
 
 INVOICE_SCHEMA = pa.DataFrameSchema(
@@ -21,9 +22,9 @@ INVOICE_SCHEMA = pa.DataFrameSchema(
                 pa.Check(lambda identifiers: identifiers.eq(identifiers.str.strip())),
             ],
         ),
-        "invoice_date": pa.Column(pa.DateTime, nullable=False),
-        "due_date": pa.Column(pa.DateTime, nullable=True),
-        "paid_date": pa.Column(pa.DateTime, nullable=True),
+        "invoice_date": pa.Column(pd.DatetimeTZDtype(unit="ns", tz="UTC"), nullable=False),
+        "due_date": pa.Column(pd.DatetimeTZDtype(unit="ns", tz="UTC"), nullable=True),
+        "paid_date": pa.Column(pd.DatetimeTZDtype(unit="ns", tz="UTC"), nullable=True),
         "amount": pa.Column(
             float,
             nullable=False,

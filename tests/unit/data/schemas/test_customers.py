@@ -13,7 +13,7 @@ def valid_customers() -> pd.DataFrame:
     return pd.DataFrame(
         {
             "customer_id": ["C001", "C002"],
-            "created_at": pd.to_datetime(["2025-01-15", "2025-02-20"]),
+            "created_at": pd.to_datetime(["2025-01-15", "2025-02-20"], utc=True),
             "country": ["UK", "UK"],
             "industry": ["Technology", "Finance"],
             "company_size": ["Small", "Medium"],
@@ -40,7 +40,7 @@ def test_invalid_customer_id_whitespace_fails(customer_id: str) -> None:
     data = pd.DataFrame(
         {
             "customer_id": [customer_id],
-            "created_at": pd.to_datetime(["2025-01-15"]),
+            "created_at": pd.to_datetime(["2025-01-15"], utc=True),
         }
     )
 
@@ -53,7 +53,7 @@ def test_missing_optional_columns_are_added() -> None:
     data = pd.DataFrame(
         {
             "customer_id": ["C001"],
-            "created_at": pd.to_datetime(["2025-01-15"]),
+            "created_at": pd.to_datetime(["2025-01-15"], utc=True),
         }
     )
 
@@ -95,7 +95,7 @@ def test_invalid_customer_id_type_fails() -> None:
     data = pd.DataFrame(
         {
             "customer_id": [1001],
-            "created_at": pd.to_datetime(["2025-01-15"]),
+            "created_at": pd.to_datetime(["2025-01-15"], utc=True),
         }
     )
 

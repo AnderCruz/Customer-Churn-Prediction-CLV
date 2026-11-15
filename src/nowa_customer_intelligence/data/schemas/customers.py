@@ -1,5 +1,6 @@
 """Pandera schema for customer data validation."""
 
+import pandas as pd
 import pandera.pandas as pa
 
 CUSTOMER_SCHEMA = pa.DataFrameSchema(
@@ -14,7 +15,7 @@ CUSTOMER_SCHEMA = pa.DataFrameSchema(
             ],
         ),
         "created_at": pa.Column(
-            pa.DateTime,
+            pd.DatetimeTZDtype(unit="ns", tz="UTC"),
             nullable=False,
         ),
         "country": pa.Column(

@@ -13,7 +13,7 @@ SUBSCRIPTION_SNAPSHOT_SCHEMA = pa.DataFrameSchema(
                 pa.Check(lambda identifiers: identifiers.eq(identifiers.str.strip())),
             ],
         ),
-        "snapshot_date": pa.Column(pa.DateTime, nullable=False),
+        "snapshot_date": pa.Column(pd.DatetimeTZDtype(unit="ns", tz="UTC"), nullable=False),
         "subscription_status": pa.Column(
             str,
             nullable=False,

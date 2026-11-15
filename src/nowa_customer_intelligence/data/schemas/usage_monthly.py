@@ -13,7 +13,7 @@ USAGE_MONTHLY_SCHEMA = pa.DataFrameSchema(
                 pa.Check(lambda identifiers: identifiers.eq(identifiers.str.strip())),
             ],
         ),
-        "usage_month": pa.Column(pa.DateTime, nullable=False),
+        "usage_month": pa.Column(pd.DatetimeTZDtype(unit="ns", tz="UTC"), nullable=False),
         "active_users": pa.Column(pd.Int64Dtype(), nullable=True, checks=pa.Check.ge(0)),
         "total_users": pa.Column(pd.Int64Dtype(), nullable=True, checks=pa.Check.ge(0)),
         "sessions_count": pa.Column(pd.Int64Dtype(), nullable=True, checks=pa.Check.ge(0)),

@@ -13,7 +13,7 @@ def valid_snapshots() -> pd.DataFrame:
     return pd.DataFrame(
         {
             "subscription_id": ["S001", "S001", "S002"],
-            "snapshot_date": pd.to_datetime(["2025-01-31", "2025-02-28", "2025-01-31"]),
+            "snapshot_date": pd.to_datetime(["2025-01-31", "2025-02-28", "2025-01-31"], utc=True),
             "subscription_status": ["active", "paused", "trial"],
             "recurring_revenue": [29.99, 29.99, 0.0],
             "currency": ["USD", "USD", "EUR"],
@@ -46,7 +46,7 @@ def test_missing_optional_columns_are_added() -> None:
     data = pd.DataFrame(
         {
             "subscription_id": ["S001"],
-            "snapshot_date": pd.to_datetime(["2025-01-31"]),
+            "snapshot_date": pd.to_datetime(["2025-01-31"], utc=True),
             "subscription_status": ["active"],
         }
     )
@@ -74,7 +74,7 @@ def test_invalid_subscription_id_fails(subscription_id: str | None) -> None:
     data = pd.DataFrame(
         {
             "subscription_id": [subscription_id],
-            "snapshot_date": pd.to_datetime(["2025-01-31"]),
+            "snapshot_date": pd.to_datetime(["2025-01-31"], utc=True),
             "subscription_status": ["active"],
         }
     )
@@ -88,7 +88,7 @@ def test_null_required_field_fails(field: str) -> None:
     """Required snapshot fields should reject null values."""
     values: dict[str, list[object]] = {
         "subscription_id": ["S001"],
-        "snapshot_date": [pd.Timestamp("2025-01-31")],
+        "snapshot_date": [pd.Timestamp("2025-01-31", tz="UTC")],
         "subscription_status": ["active"],
     }
     values[field] = [None]
@@ -100,7 +100,7 @@ def test_null_required_field_fails(field: str) -> None:
 
 def test_duplicate_composite_key_fails(valid_snapshots: pd.DataFrame) -> None:
     """Duplicate subscription and snapshot date pairs should fail validation."""
-    valid_snapshots.loc[1, "snapshot_date"] = pd.Timestamp("2025-01-31")
+    valid_snapshots.loc[1, "snapshot_date"] = pd.Timestamp("2025-01-31", tz="UTC")
 
     with pytest.raises(pa.errors.SchemaError):
         SUBSCRIPTION_SNAPSHOT_SCHEMA.validate(valid_snapshots)
@@ -112,7 +112,7 @@ def test_invalid_subscription_status_fails(status: str | None) -> None:
     data = pd.DataFrame(
         {
             "subscription_id": ["S001"],
-            "snapshot_date": pd.to_datetime(["2025-01-31"]),
+            "snapshot_date": pd.to_datetime(["2025-01-31"], utc=True),
             "subscription_status": [status],
         }
     )
@@ -135,7 +135,7 @@ def test_invalid_currency_format_fails(currency: str) -> None:
     data = pd.DataFrame(
         {
             "subscription_id": ["S001"],
-            "snapshot_date": pd.to_datetime(["2025-01-31"]),
+            "snapshot_date": pd.to_datetime(["2025-01-31"], utc=True),
             "subscription_status": ["active"],
             "currency": [currency],
         }
@@ -150,7 +150,7 @@ def test_nullable_auto_renew_values_pass() -> None:
     data = pd.DataFrame(
         {
             "subscription_id": ["S001", "S002", "S003"],
-            "snapshot_date": pd.to_datetime(["2025-01-31", "2025-01-31", "2025-01-31"]),
+            "snapshot_date": pd.to_datetime(["2025-01-31", "2025-01-31", "2025-01-31"], utc=True),
             "subscription_status": ["active", "active", "active"],
             "auto_renew": pd.Series([True, False, None], dtype="boolean"),
         }
@@ -176,7 +176,7 @@ def test_invalid_field_type_fails(field: str, value: object) -> None:
     data = pd.DataFrame(
         {
             "subscription_id": ["S001"],
-            "snapshot_date": pd.to_datetime(["2025-01-31"]),
+            "snapshot_date": pd.to_datetime(["2025-01-31"], utc=True),
             "subscription_status": ["active"],
         }
     )

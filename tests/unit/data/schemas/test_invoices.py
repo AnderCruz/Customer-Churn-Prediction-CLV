@@ -14,9 +14,9 @@ def valid_invoices() -> pd.DataFrame:
         {
             "invoice_id": ["I001", "I002"],
             "subscription_id": ["S001", "S001"],
-            "invoice_date": pd.to_datetime(["2025-01-01", "2025-02-01"]),
-            "due_date": pd.to_datetime(["2025-01-15", "2025-02-15"]),
-            "paid_date": pd.to_datetime(["2025-01-10", None]),
+            "invoice_date": pd.to_datetime(["2025-01-01", "2025-02-01"], utc=True),
+            "due_date": pd.to_datetime(["2025-01-15", "2025-02-15"], utc=True),
+            "paid_date": pd.to_datetime(["2025-01-10", None], utc=True),
             "amount": [99.99, 100.0],
             "currency": ["USD", "EUR"],
             "invoice_status": ["paid", "pending"],
@@ -39,7 +39,7 @@ def test_missing_optional_columns_are_added() -> None:
         {
             "invoice_id": ["I001"],
             "subscription_id": ["S001"],
-            "invoice_date": pd.to_datetime(["2025-01-01"]),
+            "invoice_date": pd.to_datetime(["2025-01-01"], utc=True),
             "amount": [99.99],
             "currency": ["USD"],
             "invoice_status": ["pending"],
@@ -70,7 +70,7 @@ def test_missing_required_column_fails(required_column: str) -> None:
         {
             "invoice_id": ["I001"],
             "subscription_id": ["S001"],
-            "invoice_date": pd.to_datetime(["2025-01-01"]),
+            "invoice_date": pd.to_datetime(["2025-01-01"], utc=True),
             "amount": [99.99],
             "currency": ["USD"],
             "invoice_status": ["pending"],
@@ -90,7 +90,7 @@ def test_null_required_field_fails(field: str) -> None:
     values: dict[str, list[object]] = {
         "invoice_id": ["I001"],
         "subscription_id": ["S001"],
-        "invoice_date": [pd.Timestamp("2025-01-01")],
+        "invoice_date": [pd.Timestamp("2025-01-01", tz="UTC")],
         "amount": [99.99],
         "currency": ["USD"],
         "invoice_status": ["pending"],
@@ -131,7 +131,7 @@ def test_invalid_identifier_fails(field: str, identifier: str) -> None:
         {
             "invoice_id": ["I001"],
             "subscription_id": ["S001"],
-            "invoice_date": pd.to_datetime(["2025-01-01"]),
+            "invoice_date": pd.to_datetime(["2025-01-01"], utc=True),
             "amount": [99.99],
             "currency": ["USD"],
             "invoice_status": ["pending"],
@@ -164,7 +164,7 @@ def test_nullable_dates_accept_null_values(valid_invoices: pd.DataFrame) -> None
 @pytest.mark.parametrize("field", ["due_date", "paid_date"])
 def test_date_must_not_precede_invoice_date(field: str, valid_invoices: pd.DataFrame) -> None:
     """Due and paid dates should not precede the invoice date."""
-    valid_invoices.loc[0, field] = pd.Timestamp("2024-12-31")
+    valid_invoices.loc[0, field] = pd.Timestamp("2024-12-31", tz="UTC")
 
     with pytest.raises(pa.errors.SchemaError):
         INVOICE_SCHEMA.validate(valid_invoices)
@@ -188,7 +188,7 @@ def test_invalid_field_type_fails(field: str, value: object) -> None:
         {
             "invoice_id": ["I001"],
             "subscription_id": ["S001"],
-            "invoice_date": pd.to_datetime(["2025-01-01"]),
+            "invoice_date": pd.to_datetime(["2025-01-01"], utc=True),
             "amount": [99.99],
             "currency": ["USD"],
             "invoice_status": ["pending"],
@@ -206,7 +206,7 @@ def test_negative_amount_fails() -> None:
         {
             "invoice_id": ["I001"],
             "subscription_id": ["S001"],
-            "invoice_date": pd.to_datetime(["2025-01-01"]),
+            "invoice_date": pd.to_datetime(["2025-01-01"], utc=True),
             "amount": [-0.01],
             "currency": ["USD"],
             "invoice_status": ["pending"],
@@ -224,7 +224,7 @@ def test_invalid_currency_format_fails(currency: str) -> None:
         {
             "invoice_id": ["I001"],
             "subscription_id": ["S001"],
-            "invoice_date": pd.to_datetime(["2025-01-01"]),
+            "invoice_date": pd.to_datetime(["2025-01-01"], utc=True),
             "amount": [99.99],
             "currency": [currency],
             "invoice_status": ["pending"],
@@ -242,7 +242,7 @@ def test_invalid_invoice_status_fails(status: str | None) -> None:
         {
             "invoice_id": ["I001"],
             "subscription_id": ["S001"],
-            "invoice_date": pd.to_datetime(["2025-01-01"]),
+            "invoice_date": pd.to_datetime(["2025-01-01"], utc=True),
             "amount": [99.99],
             "currency": ["USD"],
             "invoice_status": [status],

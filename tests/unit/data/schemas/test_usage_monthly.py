@@ -13,7 +13,7 @@ def valid_usage() -> pd.DataFrame:
     return pd.DataFrame(
         {
             "subscription_id": ["S001", "S001", "S002"],
-            "usage_month": pd.to_datetime(["2025-01-01", "2025-02-01", "2025-01-01"]),
+            "usage_month": pd.to_datetime(["2025-01-01", "2025-02-01", "2025-01-01"], utc=True),
             "active_users": pd.Series([4, 5, 2], dtype="Int64"),
             "total_users": pd.Series([6, 6, 2], dtype="Int64"),
             "sessions_count": pd.Series([120, 135, 40], dtype="Int64"),
@@ -46,7 +46,7 @@ def test_missing_optional_columns_are_added() -> None:
     data = pd.DataFrame(
         {
             "subscription_id": ["S001"],
-            "usage_month": pd.to_datetime(["2025-01-01"]),
+            "usage_month": pd.to_datetime(["2025-01-01"], utc=True),
         }
     )
     optional_columns = [
@@ -70,7 +70,7 @@ def test_missing_required_column_fails(required_column: str) -> None:
     data = pd.DataFrame(
         {
             "subscription_id": ["S001"],
-            "usage_month": pd.to_datetime(["2025-01-01"]),
+            "usage_month": pd.to_datetime(["2025-01-01"], utc=True),
         }
     ).drop(columns=required_column)
 
@@ -83,7 +83,7 @@ def test_null_required_field_fails(field: str) -> None:
     """Required usage fields should reject null values."""
     values: dict[str, list[object]] = {
         "subscription_id": ["S001"],
-        "usage_month": [pd.Timestamp("2025-01-01")],
+        "usage_month": [pd.Timestamp("2025-01-01", tz="UTC")],
     }
     values[field] = [None]
     data = pd.DataFrame(values)
@@ -97,7 +97,7 @@ def test_nullable_fields_accept_null_values() -> None:
     data = pd.DataFrame(
         {
             "subscription_id": ["S001"],
-            "usage_month": pd.to_datetime(["2025-01-01"]),
+            "usage_month": pd.to_datetime(["2025-01-01"], utc=True),
             "active_users": pd.Series([None], dtype="Int64"),
             "total_users": pd.Series([None], dtype="Int64"),
             "sessions_count": pd.Series([None], dtype="Int64"),
@@ -122,7 +122,7 @@ def test_invalid_subscription_id_fails(subscription_id: str) -> None:
     data = pd.DataFrame(
         {
             "subscription_id": [subscription_id],
-            "usage_month": pd.to_datetime(["2025-01-01"]),
+            "usage_month": pd.to_datetime(["2025-01-01"], utc=True),
         }
     )
 
@@ -132,7 +132,7 @@ def test_invalid_subscription_id_fails(subscription_id: str) -> None:
 
 def test_duplicate_composite_key_fails(valid_usage: pd.DataFrame) -> None:
     """Duplicate subscription and month pairs should fail validation."""
-    valid_usage.loc[1, "usage_month"] = pd.Timestamp("2025-01-01")
+    valid_usage.loc[1, "usage_month"] = pd.Timestamp("2025-01-01", tz="UTC")
 
     with pytest.raises(pa.errors.SchemaError):
         USAGE_MONTHLY_SCHEMA.validate(valid_usage)
@@ -152,7 +152,7 @@ def test_invalid_field_type_fails(field: str, value: object) -> None:
     data = pd.DataFrame(
         {
             "subscription_id": ["S001"],
-            "usage_month": pd.to_datetime(["2025-01-01"]),
+            "usage_month": pd.to_datetime(["2025-01-01"], utc=True),
         }
     )
     data[field] = [value]
@@ -186,7 +186,7 @@ def test_active_users_may_exceed_total_users_when_one_is_missing() -> None:
     data = pd.DataFrame(
         {
             "subscription_id": ["S001"],
-            "usage_month": pd.to_datetime(["2025-01-01"]),
+            "usage_month": pd.to_datetime(["2025-01-01"], utc=True),
             "active_users": pd.Series([7], dtype="Int64"),
             "total_users": pd.Series([None], dtype="Int64"),
         }
