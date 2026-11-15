@@ -1,0 +1,20 @@
+project:
+  name: nowa-customer-intelligence
+  environment: development
+  timezone: Europe/London
+
+data:
+  raw_dir: data/raw
+  interim_dir: data/interim
+  processed_dir: data/processed
+  external_dir: data/external
+
+logging:
+  level: INFO
+
+modelling:
+  churn:
+    target_name: churn
+    observation_window_days: 90  # Initial hypothesis; validate during data discovery.
+    prediction_horizon_days: 30  # Initial hypothesis; validate during data discovery.
+    random_state: 42
