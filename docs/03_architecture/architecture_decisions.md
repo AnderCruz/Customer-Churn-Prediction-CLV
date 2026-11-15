@@ -83,3 +83,41 @@
 **Decision:** Use MLflow for local experiment tracking and model metadata, with an appropriate managed or secured backend for production.
 
 **Consequences:** Consistent experiment history; production access and storage security must be configured.
+
+## ADR-009: Subscription-Level Churn Prediction
+
+**Status:** Accepted.
+
+**Context:**
+
+A customer account may have multiple subscriptions with different
+contractual characteristics and cancellation behaviours.
+
+Predicting churn only at customer level could hide differences
+between individual subscriptions.
+
+**Decision:**
+
+The initial churn prediction unit will be the individual subscription.
+
+- `subscription_id` will identify the prediction entity.
+- `customer_id` will identify the associated customer account.
+- Churn labels will be constructed at subscription level.
+- Model evaluation will initially be performed at subscription level.
+- Customer-level risk and revenue exposure will be derived
+  through aggregation of subscription-level predictions.
+- `customer_id` will not be used as a predictive model feature.
+
+Historical subscription snapshots will be required for
+time-aware model training and evaluation.
+
+**Consequences:**
+
+This approach preserves subscription-level behavioural differences
+and supports customers with multiple concurrent subscriptions.
+
+Customer-level reporting can be implemented without changing
+the underlying prediction entity.
+
+The treatment of reactivated subscriptions, contract renewals
+and subscription episodes must be defined during data discovery.
