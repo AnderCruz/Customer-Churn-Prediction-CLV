@@ -97,12 +97,16 @@ def inspect_csv_header(file_path: str | Path, dataset: str) -> tuple[str, ...]:
         raise CSVHeaderError(f"{path}: path is not a regular file")
 
     try:
-        with path.open("r", encoding="utf-8-sig", newline="") as csv_file:
-            reader = csv.reader(csv_file, delimiter=",", strict=True)
-            try:
-                header = next(reader)
-            except StopIteration as exc:
-                raise CSVHeaderError(f"{path}: CSV file is empty; header is missing") from exc
+        with path.open("rb") as csv_file:
+            header_bytes = csv_file.readline()
+        if not header_bytes:
+            raise CSVHeaderError(f"{path}: CSV file is empty; header is missing")
+        header_text = header_bytes.decode("utf-8-sig")
+        reader = csv.reader([header_text], delimiter=",", strict=True)
+        try:
+            header = next(reader)
+        except StopIteration as exc:
+            raise CSVHeaderError(f"{path}: CSV file is empty; header is missing") from exc
     except CSVHeaderError:
         raise
     except (OSError, UnicodeError, csv.Error) as exc:

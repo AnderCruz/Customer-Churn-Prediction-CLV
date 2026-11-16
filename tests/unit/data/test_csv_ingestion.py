@@ -134,7 +134,7 @@ def test_invalid_encoding_in_data_is_reported(tmp_path: Path) -> None:
     csv_path = tmp_path / "invalid_encoding.csv"
     csv_path.write_bytes(b"customer_id,created_at\n001,\xff\n")
 
-    with pytest.raises((CSVHeaderError, CSVIngestionError)) as error:
+    with pytest.raises(CSVIngestionError) as error:
         ingest_csv_dataset(csv_path, "customers")
 
     assert str(csv_path) in str(error.value)
