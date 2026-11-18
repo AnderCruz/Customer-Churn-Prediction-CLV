@@ -119,3 +119,20 @@ The consolidated suite passed 891 tests (844 unit and 47 integration), with zero
 - **WP-05 — Foundation Implemented and Verified; Full WP Pending**
 
 All 48 targeted episode, billing and integration tests passed. Repository-wide Ruff lint and formatting passed. Verification covers supplied UUIDs and ownership, preservation of explicit episode facts, exact GBP catalogue arithmetic and validation of supplied invoice facts. Identity issuance, lifecycle replay, billing schedules and formal full-package acceptance remain pending.
+
+## 10. Synthetic generator Batch 04 vertical slice
+
+The verified WP-04/05 foundations are checkpointed in `20c4cee83553fc07b05f1522934635b2195ec9da`. Full work-package acceptance remains pending.
+
+- **WP-06.** `UsageRecord` and `validate_usage` check explicit inclusive coverage dates, subscription ownership, uniqueness by labelled month, non-negative quantities, user counts, and optional availability against the extraction cutoff. `SnapshotRecord` and `validate_snapshots` check explicit historical status and separate occurrence, effective, availability and observation timestamps. Supported commercial facts use the existing fictional GBP catalogue and monthly-normalised revenue. No monthly convention, lifecycle replay or behavioural distribution is inferred.
+- **WP-08.** `project_development_population` checks the declared inventory, customer coverage and supported record relationships, then returns immutable contract-ordered rows. `export_development_csvs` uses exclusive writes in a caller-supplied empty temporary directory. Internal timestamps and periods stay out of contract columns. Missing optional columns are represented by empty values, and unsupported fields fail projection. This interface is for development fixtures only.
+- **Evidence.** BASIC succeeded with 2 customers, 2 subscriptions, 1 usage record and 1 invoice across four CSVs. TEMPORAL succeeded with the same records plus 1 historical snapshot across five CSVs. Both passed existing schema, applicable referential-integrity and data-quality gates, including TC-001/002 date ordering. RI-002 was inapplicable to BASIC without snapshots and passed for TEMPORAL. These checks do not establish broader historical correctness, semantic attribution for client sources or model eligibility.
+- **Quality.** The targeted synthetic and pipeline suites passed 276 tests. The full suite passed 928 tests (879 unit, 49 integration), with no failures or skips. Statement coverage was 100% for `observations.py` and 97% for `projection.py`. Its uncovered statements are defensive unsupported-type, unsupported-field and missing-required-value guards. Ruff lint and formatting, dependency consistency and whitespace checks passed.
+- **Remaining decisions.** BDR-010 requires an explicit monthly snapshot convention and termination-date treatment. BDR-011 requires agreed usage coverage boundaries. BDR-015 governs model observation and availability cutoffs. BDR-013, DD-EP-003, BDR-014 and BDR-012 still block source-generated identity, lifecycle and billing histories. The development slice is ready for technical review. Full WP-06 and WP-08 acceptance remains pending.
+
+### Batch 05 foundation reverification
+
+- **WP-06: Foundation Verified — Full Work Package Pending.**
+- **WP-08: Development Projection Verified — Production Integration Pending.**
+
+All 66 observation, projection and pipeline tests passed. Repository-wide Ruff lint and format checks passed. BASIC without snapshots and TEMPORAL with snapshots passed the implemented pipeline gates using temporary fixture exports. Semantic attribution, full historical correctness, model eligibility and production publication remain outside this checkpoint.
