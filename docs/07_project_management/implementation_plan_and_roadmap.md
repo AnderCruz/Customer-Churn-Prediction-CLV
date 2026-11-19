@@ -136,3 +136,17 @@ The verified WP-04/05 foundations are checkpointed in `20c4cee83553fc07b05f15229
 - **WP-08: Development Projection Verified — Production Integration Pending.**
 
 All 66 observation, projection and pipeline tests passed. Repository-wide Ruff lint and format checks passed. BASIC without snapshots and TEMPORAL with snapshots passed the implemented pipeline gates using temporary fixture exports. Semantic attribution, full historical correctness, model eligibility and production publication remain outside this checkpoint.
+
+## 11. Synthetic generator Batch 05 evidence foundations
+
+WP-06 and WP-08 foundation reverification is checkpointed in `bb855d81131c65dd3a3731d2939a6553b218e98c`. All 66 checkpoint tests passed.
+
+- **WP-07.** Immutable `OutcomeRecord` and `OutcomeEvidence` retain the five supplied internal states, source references, temporal evidence and observation and ascertainment cutoffs. `validate_outcomes` checks unique episode observations and explicit ownership. Structural checks do not establish event qualification, completeness or model eligibility. No binary label, outcome persistence or contract projection is implemented.
+- **WP-09.** `validate_synthetic_evidence` reuses the domain validators and checks explicit source bindings, episode lineage, cutoff chronology and feature availability. Its fixed diagnostic categories distinguish passed, failed, not evaluated and blocked by unresolved policy. Canonical allocation, lifecycle replay, billing schedules, monthly conventions, target and eligibility remain policy-blocked. The existing pipeline is unchanged.
+- **WP-11.** Isolated one-defect fixtures cover duplicate episode or observation grains, missing ownership, unknown references, contradictory facts, future evidence, incorrect invoice attribution, invalid outcome evidence and unsupported transitions. Tests check rejection and preservation of the valid fixture. The suite covers implemented checks only.
+- **Evidence.** The 45 new tests passed. The full suite passed 973 tests (923 unit and 50 integration), with no failures or skips. Both new modules reached 100% statement coverage. Ruff lint and formatting, dependency consistency and whitespace checks passed. An integration fixture passed the existing BASIC pipeline with customer and subscription CSVs while outcome truth remained internal.
+- **Remaining work.** BDR-013 and DD-EP-003 govern identity issuance and persistence, BDR-014 governs lifecycle, BDR-012 governs billing timing, and BDR-010/011/015 govern temporal generation. CGQ-006/007/010–012/021 and CGQ-016 govern later outcome certification and eligibility. Full WP-07, WP-09 and WP-11 acceptance remains pending. WP-10 has not started.
+
+### Batch 06 foundation acceptance
+
+WP-07, WP-09 and WP-11 foundations are accepted within their Batch 05 scope after 45 targeted tests and repository-wide Ruff lint and formatting passed. Full work packages remain pending. Supplied internal outcome truth and isolated negative fixtures confer no production outcome or eligibility certification.
