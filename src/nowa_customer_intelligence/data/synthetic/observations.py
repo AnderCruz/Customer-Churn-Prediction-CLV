@@ -1,12 +1,16 @@
 """Validate explicit monthly usage and historical snapshot facts."""
 
+from calendar import monthrange
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
+
+from numpy.random import Generator
 
 from nowa_customer_intelligence.data.synthetic.billing import (
     BillingFrequency,
+    ScheduledCharge,
     calculate_catalogue_charge,
 )
 from nowa_customer_intelligence.data.synthetic.episodes import EpisodeStatus, SubscriptionEpisode
@@ -187,3 +191,122 @@ def validate_snapshots(
 ) -> tuple[SnapshotRecord, ...]:
     """Validate and order explicitly evidenced historical snapshots."""
     return _validate_records(records, episodes, SnapshotRecord, cutoff)
+
+
+@dataclass(frozen=True, slots=True)
+class UsageAssumptions:
+    """Fictional uniform count bounds and reporting lag for a scenario."""
+
+    minimum_users: int
+    maximum_users: int
+    maximum_sessions: int
+    maximum_events: int
+    reporting_lag_days: int = 1
+
+    def __post_init__(self) -> None:
+        values = (
+            self.minimum_users,
+            self.maximum_users,
+            self.maximum_sessions,
+            self.maximum_events,
+            self.reporting_lag_days,
+        )
+        if any(type(value) is not int or not 0 <= value < 2**63 for value in values):
+            raise ObservationError("Expected non-negative bounded fictional usage assumptions.")
+        if self.minimum_users > self.maximum_users:
+            raise ObservationError("The fictional user-count bounds are inverted.")
+        if self.reporting_lag_days < 1:
+            raise ObservationError("Completed usage is available no earlier than the next day.")
+
+
+def generate_episode_observations(
+    episode: SubscriptionEpisode,
+    charges: tuple[ScheduledCharge, ...],
+    activation_available: datetime,
+    *,
+    observation_cutoff: datetime,
+    assumptions: UsageAssumptions,
+    stream: Generator,
+) -> tuple[tuple[UsageRecord, ...], tuple[SnapshotRecord, ...]]:
+    """Generate completed calendar-month usage and UTC month-end states."""
+    if any(
+        type(stamp) is not datetime or stamp.utcoffset() is None
+        for stamp in (activation_available, observation_cutoff)
+    ):
+        raise ObservationError("Expected explicit timezone-aware observation cutoffs.")
+    observation_cutoff = observation_cutoff.astimezone(UTC)
+    activation_available = activation_available.astimezone(UTC)
+    if not charges or any(
+        charge.invoice.subscription_id != episode.subscription_id for charge in charges
+    ):
+        raise ObservationError("Expected explicit charges for the observed episode.")
+    start = charges[0].invoice.invoice_date
+    period = start.replace(day=1)
+    charge_index = 0
+    usage = []
+    snapshots = []
+    while period <= observation_cutoff.date():
+        last = period.replace(day=monthrange(period.year, period.month)[1])
+        observed = datetime.combine(last, time.max, tzinfo=UTC)
+        if observed > observation_cutoff or (
+            episode.end_date is not None and last >= episode.end_date
+        ):
+            break
+        while (
+            charge_index + 1 < len(charges)
+            and charges[charge_index + 1].invoice.invoice_date <= last
+        ):
+            charge_index += 1
+        charge = charges[charge_index]
+        charged_at = datetime.combine(charge.invoice.invoice_date, time.min, tzinfo=UTC)
+        evidence_available = max(charged_at, activation_available)
+        if evidence_available <= observed:
+            snapshots.append(
+                SnapshotRecord(
+                    episode.subscription_id,
+                    last,
+                    EpisodeStatus.ACTIVE,
+                    observed,
+                    charged_at,
+                    charged_at,
+                    evidence_available,
+                    charge.plan_id,
+                    charge.frequency,
+                    charge.recurring_revenue,
+                    "GBP",
+                )
+            )
+        if (
+            period >= start
+            and assumptions.reporting_lag_days <= (observation_cutoff.date() - last).days
+        ):
+            available_at = max(
+                datetime.combine(
+                    last + timedelta(days=assumptions.reporting_lag_days), time.min, tzinfo=UTC
+                ),
+                activation_available,
+            )
+            if available_at > observation_cutoff:
+                period = last + timedelta(days=1)
+                continue
+            users = int(
+                stream.integers(assumptions.minimum_users, assumptions.maximum_users, endpoint=True)
+            )
+            activity = int(stream.integers(0, users, endpoint=True))
+            sessions = int(stream.integers(0, assumptions.maximum_sessions, endpoint=True))
+            events = int(stream.integers(0, assumptions.maximum_events, endpoint=True))
+            usage.append(
+                UsageRecord(
+                    episode.subscription_id,
+                    period,
+                    period,
+                    last,
+                    activity,
+                    users,
+                    sessions,
+                    events,
+                    available_at=available_at,
+                )
+            )
+        period = last + timedelta(days=1)
+    return tuple(usage), tuple(snapshots)

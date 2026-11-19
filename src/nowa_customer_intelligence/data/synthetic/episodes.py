@@ -3,6 +3,7 @@
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
+from decimal import Decimal
 from enum import StrEnum
 from re import fullmatch
 from uuid import RFC_4122, UUID
@@ -84,6 +85,10 @@ class SubscriptionEpisode:
     end_date: date | None = None
     cancellation_date: date | None = None
     establishment: EpisodeEvent | None = None
+    plan_id: str | None = None
+    billing_frequency: str | None = None
+    recurring_revenue: Decimal | None = None
+    currency: str | None = None
 
     def __post_init__(self) -> None:
         _read_supplied_uuid(self.subscription_id)
@@ -100,6 +105,21 @@ class SubscriptionEpisode:
         for boundary in (self.end_date, self.cancellation_date):
             if boundary is not None and (type(boundary) is not date or boundary < self.start_date):
                 raise EpisodeValidationError("An episode date is invalid or precedes its start.")
+        if self.plan_id is not None and (type(self.plan_id) is not str or not self.plan_id.strip()):
+            raise EpisodeValidationError("Expected an explicit plan identifier.")
+        if self.billing_frequency is not None and self.billing_frequency not in (
+            "monthly",
+            "annual",
+        ):
+            raise EpisodeValidationError("Expected a supported billing frequency.")
+        if self.recurring_revenue is not None and (
+            type(self.recurring_revenue) is not Decimal
+            or not self.recurring_revenue.is_finite()
+            or self.recurring_revenue < 0
+        ):
+            raise EpisodeValidationError("Expected finite non-negative recurring revenue.")
+        if self.currency is not None and (type(self.currency) is not str or self.currency != "GBP"):
+            raise EpisodeValidationError("Expected GBP for the fictional commercial scope.")
         if self.establishment is not None:
             if type(self.establishment) is not EpisodeEvent:
                 raise EpisodeValidationError("Expected explicit establishment evidence.")

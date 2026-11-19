@@ -1,8 +1,9 @@
 """Calculate fictional Fieldwise catalogue charges and validate supplied invoice facts."""
 
+from calendar import monthrange
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, date, datetime, time
 from decimal import Context, Decimal, localcontext
 from enum import StrEnum
 
@@ -118,3 +119,124 @@ def validate_invoice_relationships(
             raise BillingValidationError("Unknown invoice subscription.")
         records[invoice.invoice_id] = invoice
     return tuple(records[key] for key in sorted(records))
+
+
+@dataclass(frozen=True, slots=True)
+class PlanChange:
+    """A caller-supplied request to apply a catalogue plan at the next boundary."""
+
+    requested_on: date
+    plan_id: str
+
+
+@dataclass(frozen=True, slots=True)
+class PaymentEvent:
+    """Internal fictional payment fact, separate from contract projection."""
+
+    invoice_id: str
+    status: InvoiceStatus
+    occurred_at: datetime
+    effective_at: datetime
+    available_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class ScheduledCharge:
+    """An invoice and its internal, half-open service period."""
+
+    invoice: InvoiceFact
+    period_end: date
+    plan_id: str
+    frequency: BillingFrequency
+    recurring_revenue: Decimal
+    payment_event: PaymentEvent
+
+
+def billing_anniversary(anchor: date, period: int, frequency: BillingFrequency) -> date:
+    """Return an anniversary, clamping from the original anchor in short months."""
+    if type(period) is not int or period < 0 or type(anchor) is not date:
+        raise BillingValidationError("Expected a date anchor and non-negative period number.")
+    if type(frequency) is not BillingFrequency:
+        raise BillingValidationError("Expected a supported billing frequency.")
+    months = period * (12 if frequency is BillingFrequency.ANNUAL else 1)
+    year, month = divmod(anchor.year * 12 + anchor.month - 1 + months, 12)
+    if year > date.max.year:
+        raise BillingValidationError("The billing anniversary exceeds the supported date range.")
+    return date(year, month + 1, min(anchor.day, monthrange(year, month + 1)[1]))
+
+
+def schedule_episode_billing(
+    episode: SubscriptionEpisode,
+    *,
+    paid_activation: date,
+    cutoff: date,
+    plan_id: str,
+    frequency: BillingFrequency,
+    subsequent_payment: InvoiceStatus,
+    plan_changes: tuple[PlanChange, ...] = (),
+) -> tuple[ScheduledCharge, ...]:
+    """Build advance invoices from supplied fictional activation and payment facts.
+
+    The activation charge is paid. Subsequent payment states are explicit scenario
+    inputs; failed charges do not affect episode status.
+    """
+    if (
+        type(episode) is not SubscriptionEpisode
+        or type(paid_activation) is not date
+        or type(cutoff) is not date
+        or not episode.start_date <= paid_activation <= cutoff
+        or (episode.end_date is not None and paid_activation >= episode.end_date)
+    ):
+        raise BillingValidationError("Paid activation falls outside the supported episode period.")
+    if type(subsequent_payment) is not InvoiceStatus or subsequent_payment not in (
+        InvoiceStatus.PAID,
+        InvoiceStatus.PENDING,
+        InvoiceStatus.FAILED,
+    ):
+        raise BillingValidationError("Expected a supported explicit payment state.")
+    if type(plan_changes) is not tuple or any(
+        type(change) is not PlanChange
+        or type(change.requested_on) is not date
+        or change.requested_on < paid_activation
+        or change.requested_on > cutoff
+        or (episode.end_date is not None and change.requested_on >= episode.end_date)
+        for change in plan_changes
+    ):
+        raise BillingValidationError("A supplied plan change is outside the supported episode.")
+    ordered_changes = sorted(plan_changes, key=lambda change: change.requested_on)
+    if len({change.requested_on for change in ordered_changes}) != len(ordered_changes):
+        raise BillingValidationError("Conflicting plan changes share a request date.")
+    amounts = calculate_catalogue_charge(plan_id, frequency)
+    for change in ordered_changes:
+        calculate_catalogue_charge(change.plan_id, frequency)
+
+    charges = []
+    period = change_index = 0
+    start = paid_activation
+    while start <= cutoff and (episode.end_date is None or start < episode.end_date):
+        while (
+            change_index < len(ordered_changes)
+            and ordered_changes[change_index].requested_on < start
+        ):
+            plan_id = ordered_changes[change_index].plan_id
+            amounts = calculate_catalogue_charge(plan_id, frequency)
+            change_index += 1
+        next_start = billing_anniversary(paid_activation, period + 1, frequency)
+        status = InvoiceStatus.PAID if period == 0 else subsequent_payment
+        invoice = InvoiceFact(
+            f"fixture-invoice:{episode.subscription_id}:{start.isoformat()}",
+            episode.subscription_id,
+            start,
+            amounts.invoice_amount,
+            status,
+            paid_date=start if status is InvoiceStatus.PAID else None,
+        )
+        end = min(next_start, episode.end_date) if episode.end_date is not None else next_start
+        at = datetime.combine(start, time.min, tzinfo=UTC)
+        event = PaymentEvent(invoice.invoice_id, status, at, at, at)
+        charges.append(
+            ScheduledCharge(invoice, end, plan_id, frequency, amounts.recurring_revenue, event)
+        )
+        period += 1
+        start = next_start
+    return tuple(charges)
