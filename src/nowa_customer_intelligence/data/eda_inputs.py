@@ -41,7 +41,9 @@ scenarios: {baseline: {scenario_version: 1}}
 
 
 @contextmanager
-def fieldwise_reference() -> Iterator[tuple[ProvenancedDevelopment, Path]]:
+def fieldwise_reference(
+    *, registry_path: Path | None = None
+) -> Iterator[tuple[ProvenancedDevelopment, Path]]:
     """Expose accepted reference outputs within an automatically cleaned workspace."""
     configuration = resolve_configuration(load_configuration(_CONFIGURATION), "baseline")
     with TemporaryDirectory(prefix="nci-fieldwise-eda-") as temporary:
@@ -53,7 +55,7 @@ def fieldwise_reference() -> Iterator[tuple[ProvenancedDevelopment, Path]]:
             DevelopmentScenario(
                 1200, "launch", 25, InvoiceStatus.FAILED, UsageAssumptions(2, 20, 60, 300)
             ),
-            root / "registry.sqlite",
+            registry_path if registry_path is not None else root / "registry.sqlite",
             "fieldwise-fictional",
             "phase04",
             REFERENCE_CUTOFF,
@@ -65,25 +67,34 @@ def fieldwise_reference() -> Iterator[tuple[ProvenancedDevelopment, Path]]:
         yield run, export
 
 
+def reference_candidates(
+    run: ProvenancedDevelopment, experiment: ChurnExperiment
+) -> Iterator[ObservationCandidate]:
+    """Yield the reference snapshot observations with separate adjudication bounds."""
+    horizon = timedelta(days=experiment.horizon_days)
+    for row in run.population.snapshots:
+        yield ObservationCandidate(
+            row.subscription_id,
+            ExperimentObservation(
+                row.observed_at, min(row.observed_at + horizon, experiment.extraction_cutoff)
+            ),
+        )
+
+
+def reference_follow_up() -> SimulationFollowUp:
+    """Supply the existing fictional ledger attestation."""
+    return SimulationFollowUp(
+        "fixture-authority:exhaustive-fieldwise-event-ledger", REFERENCE_CUTOFF
+    )
+
+
 def reference_outcomes(run: ProvenancedDevelopment, export: Path) -> ModellingDataset:
     """Reconstruct the existing synthetic outcome experiment without fitting a model."""
     experiment = ChurnExperiment(REFERENCE_CUTOFF)
-    horizon = timedelta(days=experiment.horizon_days)
-    candidates = (
-        ObservationCandidate(
-            row.subscription_id,
-            ExperimentObservation(
-                row.observed_at, min(row.observed_at + horizon, REFERENCE_CUTOFF)
-            ),
-        )
-        for row in run.population.snapshots
-    )
     return build_modelling_dataset(
         run,
         export,
         experiment,
-        candidates,
-        simulation_follow_up=SimulationFollowUp(
-            "fixture-authority:exhaustive-fieldwise-event-ledger", REFERENCE_CUTOFF
-        ),
+        reference_candidates(run, experiment),
+        simulation_follow_up=reference_follow_up(),
     )

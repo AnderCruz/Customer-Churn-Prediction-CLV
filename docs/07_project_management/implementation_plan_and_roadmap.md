@@ -20,7 +20,7 @@ The approved 14-phase Project Roadmap governs phase order and acceptance. The co
 | 02 — Data Foundation & Data Quality | Completed |
 | 03 — Data Acquisition | Accepted and completed with documented limitations. |
 | 04 — Data Understanding & EDA | Accepted and completed with documented limitations. |
-| 05 — Feature Engineering | Pending. Preliminary synthetic feature preparation is available. |
+| 05 — Feature Engineering | Accepted and completed with documented limitations. |
 | 06 — Churn Modelling | Pending. An experimental synthetic baseline is available. |
 | 07–14 | Retain their approved sequence. |
 
@@ -298,4 +298,70 @@ Fieldwise distributions and the one-day successor interval are properties of the
 - Evaluate episode tenure, billing cadence, eligible invoice history and completed usage history with explicit denominators. Keep invoice amounts and monthly-normalised recurring amounts distinct. Exclude future status, payment, termination and availability evidence from features.
 - Investigate single-plan and deterministic reactivation artefacts before treating apparent relationships as transferable. In later evaluation, use forward maturity and group isolation, check cohort and covariate shifts, and reserve a fresh untouched holdout with adequate independent positive support.
 
-Phase 05 remains pending and requires separate authorisation.
+The Project Owner subsequently authorised Phase 05 implementation. See §18.
+
+## 18. Phase 05 point-in-time feature engineering
+
+The implementation is for the fictional Fieldwise development reference only. It applies ADR-009/010 and CGQ-013 and preserves Customer Data Contract v1.1 and the outcome rules of `fieldwise-subscription-churn` v1. The 90-day feature window and 30-day outcome horizon are experimental parameters supplied through `ChurnExperiment`. They confer no production policy approval. The standalone Charter, complete roadmap copy and original FDB-001 evidence remain unavailable for independent traceability. Phase 06 remains pending.
+
+### 18.1 Observation, source and feature contract
+
+The key is the canonical `subscription_id` and the UTC observation timestamp. `build_feature_matrix` requires a currently verified development export and partitions evidence by canonical episode and account before computing features. Prediction eligibility is recorded for every candidate before outcome adjudication. The as-known risk set checks canonical identity, explicit exclusions, known establishment and activation, sufficient history, a usable historical snapshot and absence of an already-known effective termination. Caller-supplied exclusions must reflect the prediction-time policy. Pending and right-censored outcomes may have valid predictor rows. A late record can retrospectively make an observation ineligible for the experimental target while leaving its as-known prediction eligibility intact. The optional outcome assembler preserves existing classifications and flags retrospective training eligibility only when an eligible predictor row also has a resolved binary outcome.
+
+The source projections are verified using the existing five-file contract checksums and development gates. Their internal lifecycle, snapshot, usage and billing evidence is needed for point-in-time use. Customer and subscription identity establish attribution, while final subscription state is excluded from predictor construction. Misata and UCI remain separate analytical populations.
+
+`FEATURE_SPECS` in [feature_matrix.py](../../src/nowa_customer_intelligence/data/synthetic/feature_matrix.py) is the ordered, versioned registry. It defines individual names, types, nullability and calculations. The following rules apply to each feature in its group. Integer counts are non-negative except signed changes. Numerical values must be finite, the coverage ratio must lie in [0, 1], and plan, cadence and monthly amount must reconcile to the fictional catalogue.
+
+| Group and feature names | Source fields and calculation | Window, availability and missingness |
+|---|---|---|
+| Episode — `episode_age_days` | Internal lifecycle establishment `effective_at`. Whole UTC days since establishment, integer. | Lifetime through observation. Establishment occurrence, effective time and availability must all be at or before observation. Missing or conflicting establishment fails extraction. Final status, end dates and own termination timing are excluded from predictors. |
+| Customer history — `prior_completed_episodes` | Canonical same-account episodes and authoritative establishment and termination facts. Integer count of distinct prior episodes established before and completed no later than current establishment. | Available facts through observation. Both facts must have occurred, become effective and been available by observation. Zero means no qualifying known predecessor. A later successor cannot contribute. This feature can expose the fictional reactivation pattern. |
+| Commercial — `plan_id`, `billing_frequency`, `monthly_recurring_gbp` | Latest usable subscription snapshot plan, cadence and monthly-normalised recurring revenue. Two native strings and exact Decimal GBP. | Latest snapshot with observation, occurrence, effective and availability times at or before observation. The existing historical eligibility check requires usable commercial and activation evidence. Current-state master fields and retrospective status are excluded. |
+| Billing — `issued_invoice_count`, `issued_amount_gbp`, `mean_invoice_gbp`, `days_since_last_invoice` | Episode-linked invoice ID, issue date and amount. Count, Decimal sum, Decimal mean rounded to pennies and whole UTC days since latest known issue date. | Issue boundary within the inclusive history interval. Require a matching internal billing fact with occurrence, effective and availability times at or before observation and occurrence at or after issue. For these immutable fictional charges, that fact conservatively establishes availability. No issue-date-only fallback or payment-status predictor. Zero counts available invoices only. Monetary and recency fields are null when none qualify. No completeness claim is made about an absent charge. |
+| Usage coverage — `expected_usage_months`, `observed_usage_months`, `unobserved_usage_months`, `usage_coverage_ratio`, `active_user_months` | Usage label, inclusive period bounds, `available_at` and `active_users`. Counts of expected whole months, available rows, their gap, available divided by expected, and available rows with a known active-user value. | Only whole UTC calendar months fully contained in the history interval and starting on or after known activation. Require explicit availability from month end through observation. Partial or structural periods are outside the denominator. Missing and not-yet-available rows produce the same as-known gap. The ratio is null when no months are expected. |
+| Usage levels — `zero_active_user_months`, `latest_active_users`, `mean_active_users`, `max_active_users`, `latest_sessions`, `mean_sessions`, `latest_events`, `mean_events` | Available rows' `active_users`, `sessions_count` and `events_count`. Count literal observed zero active-user months. Latest values refer to the most recent accepted row. Means use known values and the maximum uses known active-user values. | Same monthly availability gate. Counts are integers, means are floats. Missing latest cells and aggregates with no known value remain null. A recorded zero remains a valid observation. Do not infer activity for absent months. |
+| Usage trends — `active_users_change`, `sessions_change`, `events_change` | Latest value minus preceding value for each of the three usage measures, signed integers. | Same monthly availability gate. Require the latest two available rows to be consecutive with known values for the corresponding measure. Otherwise return null. No ratios or imputation. |
+
+Date-only invoice issues use the existing fictional UTC issue-day convention, with the additional availability guard above. Billing amounts measure issued charges. The snapshot amount is monthly-normalised. Neither represents recognised revenue or cash collection. Client invoice-issue availability, account-level aggregates of billing/activity, cancellation notice, future renewal, outcome fields, calendar shortcuts and unavailable usage volume are outside the feature registry. Complete historical coverage, plan diversity, independent event support and a fresh evaluation design remain limitations for later authorised work.
+
+### 18.2 Local replay and integrity
+
+Run the command from the repository root in the project Python 3.12 environment:
+
+```bash
+PYTHONPATH=src python -m nowa_customer_intelligence.data.synthetic.feature_exports \
+  --output data/processed/phase05-fieldwise-final \
+  --registry data/interim/phase05-fieldwise.sqlite
+```
+
+Use a new output directory and the same local Registry path for a byte-replay check. Add `--inference-only` to omit outcome adjudication and the outcome file. The Python interface supports the equivalent `include_outcomes=False` setting. A fresh Registry allocates different canonical UUIDs. The temporary input directory is cleaned at run exit. The Registry and all bundles remain Git-ignored.
+
+| File | Contents |
+|---|---|
+| `observations.jsonl` | Identity, UTC observation timestamp, account grouping and latest used evidence timestamp. Ordered by observation timestamp and canonical ID. |
+| `predictors.jsonl` | Only the 25 ordered features, aligned by row position with observations. Decimal GBP values are exact strings in JSON and unknown values are JSON nulls. |
+| `prediction_eligibility.jsonl` | All candidate keys and their as-known exclusion reason or null for eligible observations. |
+| `outcomes.jsonl` | Optional ledger of all candidate keys, horizon, ascertainment, classification and retrospective training eligibility. Unresolved and retrospectively ineligible states have null binary targets. Join by key when needed. |
+| `manifest.json` | Bundle version 2, predictor spec version, scenario and experiment parameters, attestation, input inventory and hashes, internal evidence hash, coverage, distribution and missingness checks, and output byte lengths and SHA-256. |
+
+### 18.3 Reference verification
+
+The reference reproduced 1,000 customers, 1,200 episodes, 14,787 invoices, 16,547 monthly usage records and 18,661 snapshots. The snapshot population yields 18,661 candidate observations, of which 15,258 have predictor rows. The 3,403 ineligible observations are retained in the separate outcome ledger. Labels remain 151 positive and 14,212 negative, with 895 right-censored and zero pending under the explicit reference attestation.
+
+The 25-feature bundle has zero duplicate keys or invalid values. Invoice amount, mean and recency are each missing in 3,020 rows with no qualifying charge. Each trend is missing in 12,836 rows because these rows have one available month out of two expected. The remaining 2,422 rows have two consecutive available months out of three expected. The reference convention makes the usage row for the month ending at observation unavailable until at least the next day. This explains the one-month gap without treating it as zero activity. All other features are populated in the reference. Coverage ranges from 50% to 66.67%. The usage gap reflects the fictional observation calendar and reporting lag and is not an empirical GB benchmark.
+
+Offline tests exercise future and late invoice and usage evidence, future terminations and successors, exact availability and lookback boundaries, missing versus zero, canonical grouping, label isolation, malformed outputs, deterministic ordering and source immutability. No split or model was created.
+
+### 18.4 Final acceptance
+
+**PHASE 05 — FEATURE ENGINEERING: ACCEPTED AND COMPLETED WITH DOCUMENTED LIMITATIONS.**
+
+The final audit found that retrospective ineligibility previously controlled predictor inclusion. The corrected bundle builds the as-known roster first and optionally adds the existing retrospective outcome classifications. An offline case showed that late evidence of termination could change a pending outcome to retrospectively ineligible while leaving the prediction roster and predictor values identical. A termination already known at observation excluded the same episode. The inference-only build reproduced the eligibility, metadata and predictor files of the adjudicated reference build without generating an outcome ledger.
+
+The corrected reference retained 15,258 prediction rows, including all 895 right-censored observations. The only prediction exclusions were 3,403 observations with insufficient history. There were 14,363 eligible rows with a resolved binary label. Reference predictor and observation files matched the previous implementation byte-for-byte, and all prior outcome classifications were preserved. All five new bundle files matched on same-Registry replay, and their recorded input and output checksums were verified.
+
+FE-01 through FE-12 passed for the authorised fictional development scope, subject to documented limitations on contractual diversity, billing availability, usage coverage and replay. The 41 targeted tests and 1,068 regression tests passed without failures or skips. The Batch 09 model-fitting integration test was excluded from collection. Ruff lint and formatting, dependency consistency and Git whitespace checks passed.
+
+The single-plan catalogue, deterministic reactivation schedule, severe class imbalance and high trend missingness limit transfer beyond this scenario. The history and horizon windows are experimental. Byte reproducibility is established with the same Registry and environment. Production evidence-availability policies remain unverified, and a fresh independent holdout is required for future model evaluation. This acceptance covers feature engineering only.
+
+**PHASE 06 — CHURN MODELLING: PENDING.**
