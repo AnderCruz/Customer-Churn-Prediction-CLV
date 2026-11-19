@@ -1,6 +1,7 @@
 """Run the Fieldwise Cloud synthetic development baseline without changing WP-01 scope."""
 
 from calendar import monthrange
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, time
 from pathlib import Path
@@ -316,7 +317,9 @@ def _validate_monthly_evidence(
 
 
 def _export_and_validate(
-    request: DevelopmentGenerationRequest, tables: tuple[ProjectedDataset, ...]
+    request: DevelopmentGenerationRequest,
+    tables: tuple[ProjectedDataset, ...],
+    observe_export: Callable[[Path, tuple[ProjectedDataset, ...]], None] | None,
 ) -> tuple[tuple[Path, ...], tuple[PipelineOrchestrationResult, ...]]:
     if request.export_directory is None and not request.validation_workflows:
         return (), ()
@@ -325,6 +328,8 @@ def _export_and_validate(
         directory: Path,
     ) -> tuple[tuple[Path, ...], tuple[PipelineOrchestrationResult, ...]]:
         sources = export_development_csvs(directory, tables)
+        if observe_export is not None:
+            observe_export(directory, tables)
         results = []
         for workflow in request.validation_workflows:
             inputs = {
@@ -352,7 +357,11 @@ def _export_and_validate(
         return (), results
 
 
-def generate_development_population(request: DevelopmentGenerationRequest) -> DevelopmentPopulation:
+def generate_development_population(
+    request: DevelopmentGenerationRequest,
+    *,
+    observe_export: Callable[[Path, tuple[ProjectedDataset, ...]], None] | None = None,
+) -> DevelopmentPopulation:
     """Run the explicitly requested development scenario and preserve its evidence."""
     if type(request) is not DevelopmentGenerationRequest:
         raise DevelopmentGenerationError("Expected an explicitly authorised development request.")
@@ -370,6 +379,7 @@ def generate_development_population(request: DevelopmentGenerationRequest) -> De
         target=scenario.episode_target,
         activation_evidence_lag_days=scenario.activation_evidence_lag_days,
     )
+    validate_lifecycle(generated, cutoff=cutoff)
     episodes, all_charges, all_usage, all_snapshots = [], [], [], []
     invoice_owners = {}
     for planned in generated:
@@ -444,7 +454,7 @@ def generate_development_population(request: DevelopmentGenerationRequest) -> De
     tables = project_development_population(
         effective, customers, masters, snapshots=all_snapshots, usage=all_usage, invoices=invoices
     )
-    files, results = _export_and_validate(request, tables)
+    files, results = _export_and_validate(request, tables, observe_export)
     return DevelopmentPopulation(
         customers,
         generated,

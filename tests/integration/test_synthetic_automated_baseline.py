@@ -22,6 +22,10 @@ from nowa_customer_intelligence.data.synthetic.development import (
 )
 from nowa_customer_intelligence.data.synthetic.identity_registry import EpisodeIdentityRegistry
 from nowa_customer_intelligence.data.synthetic.observations import UsageAssumptions
+from nowa_customer_intelligence.data.synthetic.provenance import (
+    evaluate_development_acceptance,
+    run_development_with_provenance,
+)
 from nowa_customer_intelligence.data.synthetic.semantic_validation import ValidationStatus
 from nowa_customer_intelligence.data.validation.models import RuleExecutionResult
 from nowa_customer_intelligence.pipeline import (
@@ -60,7 +64,11 @@ def test_automated_baseline_replays_and_passes_both_workflows(tmp_path: Path) ->
         datetime.combine(datetime(2024, 3, 31).date(), time.max, tzinfo=UTC),
         directory,
     )
-    result = generate_development_population(request)
+    verified = run_development_with_provenance(request)
+    result = verified.population
+    acceptance = evaluate_development_acceptance(verified.provenance, directory=directory)
+    assert acceptance.accepted
+    assert verified.provenance.integrity is not None and verified.provenance.integrity.passed
     counts = {table.dataset: len(table.rows) for table in result.tables}
     assert counts["customers"] == 1000 and counts["subscriptions"] == 1200
     assert all(count > 0 for count in counts.values()) and len(counts) == 5
@@ -118,6 +126,8 @@ def test_automated_baseline_replays_and_passes_both_workflows(tmp_path: Path) ->
                     for validation in result.validation
                 ],
                 "semantic": {name: status.value for name, status in findings.items()},
+                "acceptance": {check.gate: check.status.value for check in acceptance.gates},
+                "integrity_files": len(verified.provenance.integrity.files),
             }
         )
     )

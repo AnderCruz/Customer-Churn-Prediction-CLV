@@ -222,6 +222,9 @@ def generate_episodes(
 
 def validate_lifecycle(episodes: tuple[GeneratedEpisode, ...], *, cutoff: date) -> None:
     """Validate baseline transitions, reactivation lineage and non-overlap."""
+    identifiers = {row.episode.subscription_id.lower() for row in episodes}
+    if len(identifiers) != len(episodes):
+        raise EpisodeValidationError("Duplicate subscription identifier.")
     groups: dict[str, list[GeneratedEpisode]] = {}
     for row in episodes:
         groups.setdefault(row.episode.customer_id, []).append(row)
