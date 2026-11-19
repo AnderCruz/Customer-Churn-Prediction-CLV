@@ -10,7 +10,23 @@ Work will proceed in small, reviewable phases. Each phase must produce an artefa
 
 The initial planning estimate is 12–16 weeks of individual development effort, subject to scope, data quality, and time availability. This is a planning range, not a delivery commitment.
 
-## 2. Phases
+## 2. Phase alignment
+
+The approved 14-phase Project Roadmap governs phase order and acceptance. The consolidated Phase 03 review brief confirms the following sequence and status. The complete approved roadmap and standalone Project Charter were unavailable in the reviewed project references.
+
+| Phase | Status |
+|---|---|
+| 01 — Repository & Development Environment | Completed |
+| 02 — Data Foundation & Data Quality | Completed |
+| 03 — Data Acquisition | Accepted and completed with documented limitations. |
+| 04 — Data Understanding & EDA | Pending. Next in the approved sequence. |
+| 05 — Feature Engineering | Pending. Preliminary synthetic feature preparation is available. |
+| 06 — Churn Modelling | Pending. An experimental synthetic baseline is available. |
+| 07–14 | Retain their approved sequence. |
+
+### 2.1 Historical draft phase table
+
+The earlier draft is retained below for traceability. Apply the approved phase sequence above to the implementation records in this document.
 
 | Phase | Workstream | Main activities | Deliverables |
 |---|---|---|---|
@@ -208,3 +224,53 @@ All 16 targeted tests and 1,035 repository tests passed (958 unit and 77 integra
 ### Batch 08 foundation acceptance
 
 **BATCH 08 — Modelling Data Preparation Foundation Accepted with Documented Limitations.** All 16 targeted outcome, feature, split and end-to-end tests passed. Repository-wide Ruff lint and formatting passed. Binary training remains blocked for the reviewed split because the training partition contains zero confirmed positives. The seed-42 fixture and reviewed split are preserved.
+
+## 15. Batch 09 split diagnosis and first synthetic ML experiment
+
+Batch 08 foundation acceptance is checkpointed in `cfdf92a928fadf96ec3b58ce7511e785df2786a2`. The seed-42 generator, scenario, outcome policy and reviewed split are preserved. The 151 positive observations represent 151 of the 200 terminated episodes. First eligible positive observations occur in September 2022, after the reviewed training boundary of 1 July 2022. The synthetic generator terminates selected initial episodes at the midpoint of their remaining history and establishes a separate later episode. The first simulated terminations occur in October 2022. Training maturity checks and episode grouping operate as designed. In the reviewed split, 7 positives crossed a horizon boundary and 77 were assigned to an earlier episode group. The resolved inventory reconciles to 5,807 assigned and 8,556 excluded observations.
+
+**Selection protocol recorded before fitting.** Review the existing split, followed by forward calendar alternatives with training and validation ends of January/July, April/September, May/October and July/November 2023, with test end fixed at 1 April 2024 UTC. Select the earliest candidate in that order with both classes, valid chronology and at least 30/10/10 independent positive episodes. Boundaries evaluate existing episodes at progressively later cutoffs with explicit label maturity. No model scores enter this selection. The April/September candidate first passes with 66/10/19 positive episodes. Customer-disjoint evaluation is separate. Training-only preprocessing and models compare validation average precision, with a fixed threshold grid selected on validation F1 and higher-threshold tie breaks. The held-out partition is scored only for the selected model and threshold.
+
+**Audit and measured support.** The 49 terminated episodes without positive observations comprise 39 with insufficient observation history and 10 without a snapshot in the horizon. The unchanged alternative split retained 5,902 training observations (66 positives), 559 validation (10 positives) and 900 test (19 positives). Horizon crossings excluded 1,248 and earlier episode-group assignments excluded 5,754. All 15 required approach gates passed, including deterministic reconstruction, predictor isolation, mature labels and independent positive-episode support. Customer disjointness was inapplicable to the selected episode-disjoint evaluation.
+
+**Classical baseline results.** Scikit-learn preprocessing used training-only median imputation, scaling and categorical one-hot encoding. Validation average precision was 0.017889 for the prior dummy, 0.056247 for unweighted logistic regression and 0.054760 for class-weighted logistic regression. The validation-selected unweighted model and threshold 0.005 yielded held-out average precision 0.013676, ROC-AUC 0.236514 and zero precision, recall and F1. The confusion matrix contained 747 true negatives, 134 false positives, 19 false negatives and zero true positives. The predicted positive rate was 14.89%. Class support was sufficient for this engineering exercise, but the held-out result does not demonstrate useful churn discrimination. No scenario variant, resampling, refit on validation, deployment or production modelling policy was introduced.
+
+All 1,036 repository tests passed (958 unit and 78 integration), with zero failures or skips. The new model gate and evaluation module reached 94% statement coverage. The integration test confirmed each candidate fit saw training rows only and held-out scoring occurred once after validation selection. Repository-wide Ruff lint and formatting, dependency consistency and whitespace checks passed.
+
+## 16. Phase 03 final technical review
+
+The fictional Fieldwise Cloud seed-42 development baseline reproduced 1,000 customers, 1,200 subscription episodes, 14,787 invoices, 16,547 monthly usage rows and 18,661 snapshots over the configured 1 April 2021 to 31 March 2024 window. All five CSVs loaded successfully. BASIC succeeded with snapshots omitted, and TEMPORAL succeeded with snapshots present. All seven pipeline stages succeeded in each workflow, and the 13 mandatory development acceptance gates passed. TC-002 was inapplicable to this evidence. Production identity, lifecycle, billing, monthly temporal conventions and target and eligibility policies remain unresolved.
+
+The five exports matched their recorded row counts, sizes and SHA-256 values. A second export in the same environment and with the same Registry produced equal logical tables and matching SHA-256 values for all five CSVs. Fresh-Registry tests showed distinct UUIDs and matching tested business facts when keyed by authoritative source identity. Cross-environment equivalence and formal L1, L2 and L3 certification remain unverified.
+
+### 16.1 Project Owner decision
+
+**Decision: APPROVED — Phase 03 Synthetic-First Data Acquisition Scope.**
+
+The Project Owner explicitly approved Fieldwise Cloud as the primary source for initial development, testing, EDA and experimental modelling. The decision resolves the public acquisition scope question from the technical review. Public dataset identification and technical assessment are complete for the candidates in the [data-source inventory](../04_data/data_sources_and_governance.md). IBM Telco was assessed as a separate churn benchmark. UCI Online Retail and Online Retail II were assessed as transactional analysis candidates. Each has gaps against the subscription-episode contract.
+
+The initial scope decision deferred public dataset integration. The subsequent owner approval in §16.3 authorises two complementary sources for this phase. Other public candidates remain outside the integration scope. Production data sources and client-specific policies require separate approval.
+
+### 16.2 Closure assessment
+
+The implemented contract and scoped development gates are satisfied. The five validated CSVs support Phase 04 EDA once authorised. This assessment applies to the fictional development scope. Production policies, complete temporal validation and formal reproducibility certification remain outside that scope.
+
+The phase sequence is confirmed by the Project Owner's instructions. A standalone copy of the complete approved 14-phase roadmap and the standalone Project Charter were unavailable for independent traceability. The original completed Phase 3.3.1 population specification and its independent approval evidence remain unverified under FDB-001 in the [approved design baseline](../04_data/synthetic_data_generation_design_baseline.md). The tested population anchors are documented there and in the generation rules. These gaps remain documented limitations for the approved initial scope.
+
+**Technical review verdict — Ready for acceptance with documented limitations.** The final owner acceptance is recorded in §16.4.
+
+### 16.3 Complementary public-source integration
+
+The Project Owner authorised Misata B2B SaaS Subscription Analytics and UCI Online Retail II for official acquisition and independent local analytical integration before Phase 03 closure. Both acquisitions and both live source-adapter validations succeeded. Misata supplied 42,240 rows across five native tables with zero duplicate primary keys or orphan account references. UCI supplied 1,067,371 invoice lines across two sheets. The retail adapter reports missing customers, repeated lines, cancellations and signed quantity and price exceptions while retaining all source rows. The [source governance record](../04_data/data_sources_and_governance.md#8-approved-complementary-phase-03-sources) records publisher evidence, licence, provenance, source schemas, quality metrics and verification commands.
+
+The two sources are available through independent Python interfaces for future EDA. Their identifiers remain source-local. Full canonical contract integration, publication, production policies and client-specific processing remain outside this authorisation. Fieldwise Cloud remains the primary development source. The seed-42 baseline counts, BASIC and TEMPORAL results and development gates remain unchanged. The Charter, full roadmap and FDB-001 traceability limitations in §16.2 still apply.
+
+The complementary source integrations are complete for local analytical use. The final owner acceptance is recorded in §16.4.
+
+### 16.4 Project Owner final acceptance
+
+**PHASE 03 — DATA ACQUISITION: ACCEPTED AND COMPLETED WITH DOCUMENTED LIMITATIONS.**
+
+The Project Owner authorised acceptance subject to verification. The accepted scope covers synthetic-first acquisition, Fieldwise Cloud generation and validation, public-source assessment, independent Misata and UCI Online Retail II analytical integration, provenance and integrity, and development-data readiness. The verification reproduced the Fieldwise reference counts, both workflows and all 13 required development gates, verified the local public archives and adapter evidence, and passed 1,054 regression tests within the no-training scope.
+
+Public-source identifiers and history remain native to each source. Commercial data-use conditions remain source-specific, and production integration and publication require separate approval. Cross-environment reproducibility remains unverified. The standalone Project Charter, complete approved roadmap copy and original FDB-001 population evidence remain unavailable for independent traceability. Phase 04 implementation follows the local Phase 03 checkpoint.
