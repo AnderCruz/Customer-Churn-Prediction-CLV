@@ -19,7 +19,7 @@ The approved 14-phase Project Roadmap governs phase order and acceptance. The co
 | 01 — Repository & Development Environment | Completed |
 | 02 — Data Foundation & Data Quality | Completed |
 | 03 — Data Acquisition | Accepted and completed with documented limitations. |
-| 04 — Data Understanding & EDA | Pending. Next in the approved sequence. |
+| 04 — Data Understanding & EDA | Accepted and completed with documented limitations. |
 | 05 — Feature Engineering | Pending. Preliminary synthetic feature preparation is available. |
 | 06 — Churn Modelling | Pending. An experimental synthetic baseline is available. |
 | 07–14 | Retain their approved sequence. |
@@ -274,3 +274,28 @@ The complementary source integrations are complete for local analytical use. The
 The Project Owner authorised acceptance subject to verification. The accepted scope covers synthetic-first acquisition, Fieldwise Cloud generation and validation, public-source assessment, independent Misata and UCI Online Retail II analytical integration, provenance and integrity, and development-data readiness. The verification reproduced the Fieldwise reference counts, both workflows and all 13 required development gates, verified the local public archives and adapter evidence, and passed 1,054 regression tests within the no-training scope.
 
 Public-source identifiers and history remain native to each source. Commercial data-use conditions remain source-specific, and production integration and publication require separate approval. Cross-environment reproducibility remains unverified. The standalone Project Charter, complete approved roadmap copy and original FDB-001 population evidence remain unavailable for independent traceability. Phase 04 implementation follows the local Phase 03 checkpoint.
+
+## 17. Phase 04 data understanding and EDA
+
+EDA began after the Phase 03 checkpoint `86bcf36612bf358fdad8aa3112f08e1c8057d212`. The [three exploratory notebooks](../../notebooks/README.md#phase-04-data-understanding) reconstruct the accepted seed-42 Fieldwise data and analyse Misata and UCI independently through their source-native adapters. Rendered output and temporary Fieldwise exports are outside version control.
+
+- **Customers and episodes.** Of 1,000 Fieldwise accounts, 800 have one episode and 200 have two. The 200 confirmed terminations precede their distinct successor episodes by one day in this scenario. The five projections have no exact duplicate rows or orphan references in the audited joins. Several optional demographics and usage fields are wholly blank. Misata has one native subscription per account, and 1,044 of 1,200 accounts have invoice coverage.
+- **Churn and cohorts.** The reconstruction identified 151 positive and 14,212 negative observations, 895 right-censored, zero pending under the explicit follow-up attestation and 3,403 ineligible due to insufficient history. The first eligible positive was observed on 30 September 2022 and the first authoritative termination occurred on 5 October 2022. The original training period ended before either. The previously scored split reproduced 66, 10 and 19 positive episodes. Differences in episode age and establishment cohorts and exclusions by earlier episode assignment are descriptive evidence. The scored period has already been inspected and requires replacement as an untouched holdout for later model selection.
+- **Billing and usage.** Fieldwise recorded 14,273 monthly and 514 annual invoices with £1,566,111.80 in issued amounts. The median usage row has four active users, 30 sessions and 152 events. Usage spans April 2021 to February 2024 under the completed-month rule. UCI contributed 1,067,371 native retail lines, including 243,007 without customer IDs and 34,335 repeated normalised lines. The notebook retains these in source totals and states the filters applied to customer-level summaries.
+
+### 17.1 Final acceptance
+
+**PHASE 04 — DATA UNDERSTANDING & EXPLORATORY DATA ANALYSIS: ACCEPTED AND COMPLETED WITH DOCUMENTED LIMITATIONS.**
+
+The Project Owner authorised acceptance subject to verification. AC-01 through AC-07 passed. All three notebook sources passed schema validation and fresh Python 3.12.3 kernel execution, producing seven figures across 13 code cells. Local raw inputs were verified byte-for-byte before and after execution. The 27 targeted tests and 1,058 collected regression tests passed, with no failures or skips. The existing Batch 09 model-fitting test was excluded from collection. Ruff lint and formatting, dependency consistency and Git whitespace checks passed. The accepted architecture, generator, contract and pipeline interfaces were preserved.
+
+Fieldwise distributions and the one-day successor interval are properties of the fictional scenario. Positive support is small and temporally concentrated. Recent usage coverage remains incomplete. Misata and UCI retain their native grains and interpretation boundaries. The earlier scored partition is development evidence and requires replacement as an untouched holdout. A clean notebook environment was used to avoid an incompatible optional PySpark backend in the shared environment.
+
+### 17.2 Phase 05 handoff
+
+- Use the canonical subscription episode at an explicit observation time as the prediction grain. Preserve account identifiers for grouping and keep account-level aggregates distinct from episode metrics. Scope historical contributions and prevent information from successor episodes entering earlier observations.
+- Use the existing 90-day history and 30-day outcome horizon as experimental references. Define eligible windows and event, effective and availability cut-offs explicitly. Separate observed zero, missing expected usage, structurally unavailable periods and evidence that arrived after observation.
+- Evaluate episode tenure, billing cadence, eligible invoice history and completed usage history with explicit denominators. Keep invoice amounts and monthly-normalised recurring amounts distinct. Exclude future status, payment, termination and availability evidence from features.
+- Investigate single-plan and deterministic reactivation artefacts before treating apparent relationships as transferable. In later evaluation, use forward maturity and group isolation, check cohort and covariate shifts, and reserve a fresh untouched holdout with adequate independent positive support.
+
+Phase 05 remains pending and requires separate authorisation.
