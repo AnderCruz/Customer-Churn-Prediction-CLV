@@ -25,3 +25,16 @@ streams both sheets twice, once for source validation and once for descriptive a
 Use a clean Python 3.12 environment for verification. The notebooks do not use
 PySpark. An unrelated PySpark installation in a shared environment can cause
 Pandera to load an incompatible optional backend.
+
+## Phase 05 feature engineering
+
+[Fieldwise Cloud feature engineering analysis](02_feature_engineering/04_feature_engineering_analysis.ipynb)
+uses the accepted bundle under `data/processed/phase05-fieldwise-final/`. Prepare
+that local input using the [documented replay procedure](../docs/07_project_management/implementation_plan_and_roadmap.md#182-local-replay-and-integrity)
+and the established Phase 05 Registry if the bundle is absent. A fresh Registry
+creates different canonical IDs. The notebook reads and verifies the retained
+bundle without opening the Registry or acquiring data.
+
+Use a fresh Python 3.12 kernel with the notebook extras above. Executed copies
+should remain local and outside Git. Outcomes are used for aggregate cohort
+counts and do not enter the predictor analysis.
