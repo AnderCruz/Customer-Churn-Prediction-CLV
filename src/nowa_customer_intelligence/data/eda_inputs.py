@@ -42,10 +42,18 @@ scenarios: {baseline: {scenario_version: 1}}
 
 @contextmanager
 def fieldwise_reference(
-    *, registry_path: Path | None = None
+    *,
+    registry_path: Path | None = None,
+    master_seed: int = 42,
+    client_scope: str = "fieldwise-fictional",
 ) -> Iterator[tuple[ProvenancedDevelopment, Path]]:
-    """Expose accepted reference outputs within an automatically cleaned workspace."""
-    configuration = resolve_configuration(load_configuration(_CONFIGURATION), "baseline")
+    """Expose verified Fieldwise outputs using the reference scenario parameters."""
+    if type(master_seed) is not int:
+        raise ValueError("Expected a whole-number Fieldwise seed.")
+    document = _CONFIGURATION.replace(
+        b"master_seed: 42", f"master_seed: {master_seed}".encode("ascii")
+    )
+    configuration = resolve_configuration(load_configuration(document), "baseline")
     with TemporaryDirectory(prefix="nci-fieldwise-eda-") as temporary:
         root = Path(temporary)
         export = root / "export"
@@ -56,7 +64,7 @@ def fieldwise_reference(
                 1200, "launch", 25, InvoiceStatus.FAILED, UsageAssumptions(2, 20, 60, 300)
             ),
             registry_path if registry_path is not None else root / "registry.sqlite",
-            "fieldwise-fictional",
+            client_scope,
             "phase04",
             REFERENCE_CUTOFF,
             export,

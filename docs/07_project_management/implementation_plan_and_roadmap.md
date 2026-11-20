@@ -21,8 +21,9 @@ The approved 14-phase Project Roadmap governs phase order and acceptance. The co
 | 03 — Data Acquisition | Accepted and completed with documented limitations. |
 | 04 — Data Understanding & EDA | Accepted and completed with documented limitations. |
 | 05 — Feature Engineering | Accepted and completed with documented limitations. |
-| 06 — Churn Modelling | Pending. An experimental synthetic baseline is available. |
-| 07–14 | Retain their approved sequence. |
+| 06 — Churn Modelling | Accepted and completed with documented predictive limitations. |
+| 07 — CLV Modelling | Pending. |
+| 08–14 | Retain their approved sequence. |
 
 ### 2.1 Historical draft phase table
 
@@ -227,7 +228,7 @@ All 16 targeted tests and 1,035 repository tests passed (958 unit and 77 integra
 
 ## 15. Batch 09 split diagnosis and first synthetic ML experiment
 
-**Status: Archived pre-Phase 06 experimental technical spike.** The preserved baseline and its integration test use the historical Batch 09 synthetic predictor interface. Phase 06 modelling remains pending. The previously scored test partition is development-only, and the results below are historical experimental evidence. The integration test fits models and must be excluded from verification runs that prohibit training.
+**Status: Archived pre-Phase 06 experimental technical spike.** The preserved baseline and its integration test use the historical Batch 09 synthetic predictor interface. This spike predates Phase 06. The previously scored test partition is development-only, and the results below are historical experimental evidence. The integration test fits models and must be excluded from verification runs that prohibit training.
 
 Batch 08 foundation acceptance is checkpointed in `cfdf92a928fadf96ec3b58ce7511e785df2786a2`. The seed-42 generator, scenario, outcome policy and reviewed split are preserved. The 151 positive observations represent 151 of the 200 terminated episodes. First eligible positive observations occur in September 2022, after the reviewed training boundary of 1 July 2022. The synthetic generator terminates selected initial episodes at the midpoint of their remaining history and establishes a separate later episode. The first simulated terminations occur in October 2022. Training maturity checks and episode grouping operate as designed. In the reviewed split, 7 positives crossed a horizon boundary and 77 were assigned to an earlier episode group. The resolved inventory reconciles to 5,807 assigned and 8,556 excluded observations.
 
@@ -304,7 +305,7 @@ The Project Owner subsequently authorised Phase 05 implementation. See §18.
 
 ## 18. Phase 05 point-in-time feature engineering
 
-The implementation is for the fictional Fieldwise development reference only. It applies ADR-009/010 and CGQ-013 and preserves Customer Data Contract v1.1 and the outcome rules of `fieldwise-subscription-churn` v1. The 90-day feature window and 30-day outcome horizon are experimental parameters supplied through `ChurnExperiment`. They confer no production policy approval. The standalone Charter, complete roadmap copy and original FDB-001 evidence remain unavailable for independent traceability. Phase 06 remains pending.
+The implementation is for the fictional Fieldwise development reference only. It applies ADR-009/010 and CGQ-013 and preserves Customer Data Contract v1.1 and the outcome rules of `fieldwise-subscription-churn` v1. The 90-day feature window and 30-day outcome horizon are experimental parameters supplied through `ChurnExperiment`. They confer no production policy approval. The standalone Charter, complete roadmap copy and original FDB-001 evidence remain unavailable for independent traceability. Phase 06 is recorded in §19.
 
 ### 18.1 Observation, source and feature contract
 
@@ -366,4 +367,60 @@ FE-01 through FE-12 passed for the authorised fictional development scope, subje
 
 The single-plan catalogue, deterministic reactivation schedule, severe class imbalance and high trend missingness limit transfer beyond this scenario. The history and horizon windows are experimental. Byte reproducibility is established with the same Registry and environment. Production evidence-availability policies remain unverified, and a fresh independent holdout is required for future model evaluation. This acceptance covers feature engineering only.
 
-**PHASE 06 — CHURN MODELLING: PENDING.**
+## 19. Phase 06 churn modelling
+
+**PHASE 06 — CHURN MODELLING: ACCEPTED AND COMPLETED WITH DOCUMENTED PREDICTIVE LIMITATIONS.**
+
+The [Phase 06 protocol](../05_ml/phase06_churn_evaluation_protocol.md) defines a
+forward, customer-disjoint evaluation using the accepted Phase 05 features and
+outcomes. The previously examined Batch 09 test period is excluded from seed-42
+development. A single separately seeded Fieldwise reserve was built using an
+isolated Registry. The label-only audit retained 4,254 training rows with 55
+positive accounts, 717 validation rows with eight positive accounts and 4,806
+reserve rows with 19 positive accounts. Validation missed the 10-account
+confirmation floor. The reserve remains unscored.
+
+The declared menu includes a prior dummy, two L2 logistic configurations, two
+Random Forest depths and two histogram gradient boosting configurations. The
+balanced 15-leaf boosting fit ranked first on validation AP (0.01138 versus a
+dummy AP of 0.01116). Its ROC-AUC was 0.23272. At the validation F1 threshold it
+flagged 703 of 717 rows, finding all eight positives and producing 695 false
+alerts. Its in-sample AP was 0.81966. These are exploratory results with weak
+ranking evidence and limited positive support.
+
+The two required research notebooks are:
+
+1. [05_churn_baseline_models.ipynb](../../notebooks/03_churn_modelling/05_churn_baseline_models.ipynb)
+2. [06_churn_advanced_models.ipynb](../../notebooks/03_churn_modelling/06_churn_advanced_models.ipynb)
+
+Both render the local research artefacts without fitting. See the
+[replay instructions](../../notebooks/README.md#phase-06-churn-modelling).
+
+### 19.1 Project Owner final acceptance
+
+**Engineering acceptance granted.** The accepted experimental scope includes the
+modelling pipeline, temporal and group-isolation protocol, evaluation and scoring
+logic, automated tests and both notebooks. The seven evaluated configurations and
+historical selection decision are retained as experimental evidence. The
+[scoring integrity audit](../05_ml/phase06_churn_evaluation_protocol.md#scoring-integrity-audit)
+reproduced the nominated model's saved validation metrics from its frozen
+pipeline. The fixed threshold, target and feature contract were preserved.
+
+Final verification passed 44 targeted tests and 1,091 regression tests with
+the historical Batch 09 model-fitting test excluded. Both notebooks rendered
+in fresh Python 3.12 kernels with no fitting. Ruff, dependency consistency,
+notebook schema checks and Git whitespace checks passed. The retained research
+artefacts and source data matched their recorded checksums.
+
+**Predictive and production approval remain withheld.** Severe class imbalance
+left eight positive validation accounts against the required ten. Validation
+AP was weak, supervised candidates had ROC-AUC below 0.50, and the nominated
+candidate alerted on almost the entire validation population. Its large
+training–validation AP gap and the potential influence of generator timing and
+behaviour rules warrant caution. The cause of poor ranking remains unresolved.
+The evidence does not establish satisfactory ranking, useful operational
+prioritisation, stable calibration or independent generalisation. The seed-2027
+reserve remains unscored. No real customer validation has been performed. Future
+deployment requires additional evidence and separate approval.
+
+**PHASE 07 — CLV MODELLING: PENDING.**

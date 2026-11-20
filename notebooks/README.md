@@ -38,3 +38,40 @@ bundle without opening the Registry or acquiring data.
 Use a fresh Python 3.12 kernel with the notebook extras above. Executed copies
 should remain local and outside Git. Outcomes are used for aggregate cohort
 counts and do not enter the predictor analysis.
+
+## Phase 06 churn modelling
+
+1. [Churn baseline models](03_churn_modelling/05_churn_baseline_models.ipynb)
+2. [Churn advanced models](03_churn_modelling/06_churn_advanced_models.ipynb)
+
+The [evaluation protocol](../docs/05_ml/phase06_churn_evaluation_protocol.md) defines
+the fixed split, evidence gates and candidate menu. Use the prepared reference artefacts
+in `data/processed/phase06-research/results/`, or follow the controlled replay below.
+In a Python 3.12 environment with the notebook extras, start a fresh kernel from the
+repository or a notebook subdirectory. Run each notebook top to bottom. Both read
+checksum-verified JSON and render offline. They do not load the fitted model or train.
+
+To reproduce the research on a fresh local workspace, first prepare the Phase 05
+bundle as described above. Use the same workspace path for both commands.
+
+```bash
+python -m nowa_customer_intelligence.models.churn.research prepare \
+  --workspace data/processed/phase06-replay
+python -m nowa_customer_intelligence.models.churn.research run \
+  --workspace data/processed/phase06-replay
+```
+
+Inspect `design.json` after preparation. It records the evidence gate, partition support
+and input fingerprints before fitting. When the confirmation gate fails, the run
+records development metrics only. `--development-only` on `prepare` omits the reserve
+entirely and is suitable for replay after a reserve has already been scored. A new
+Registry changes the synthetic UUIDs and manifest fingerprints. Read existing
+confirmation results instead of recreating and re-scoring the same fixed seed.
+
+For a workspace other than the default, set `NCI_CHURN_RESULTS` to the absolute path
+of its `results/` directory in the notebook kernel environment. The research command
+allows one fitting run per prepared workspace. An interrupted run retains its
+`run-started.json` and, if selection finished, its `frozen.json`. Preserve those
+records. If the interrupted run could have reached reserve prediction, treat that
+reserve as consumed and replay only in development mode. Keep the reports, model
+binary, Registry and executed notebook copies local and outside Git.
